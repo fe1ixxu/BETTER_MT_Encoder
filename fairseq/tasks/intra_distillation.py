@@ -55,11 +55,11 @@ def JS_loss(logits, pad_mask):
 
 @dataclass
 class TranslationIntraDistillationConfig(TranslationConfig):
-    consistency_alpha: float = field(
+    alpha: float = field(
         default=5.0,
         metadata={"help": "weight of the consistency loss"},
     )
-    adaptive_consistency_alpha: int = field(
+    adaptive_alpha: int = field(
         default=0,
         metadata={"help": "whether use adaptive consistency method"},
     )
@@ -181,14 +181,14 @@ class Translation_Intra_Distillation(TranslationTask):
 
         pad_mask = sample["target"].eq(criterion.padding_idx)
         if self.cfg.div == "X":
-            consistency_loss = X_loss(logits, pad_mask)
+            intra_distillation_loss = X_loss(logits, pad_mask)
         elif self.cfg.div == "JS":
-            consistency_loss = JS_loss(logits, pad_mask)
+            intra_distillation_loss = JS_loss(logits, pad_mask)
         else:
             raise ValueError("Wrong type of divergence! Only support X and JS")
 
-        consistency_alpha = self._get_consistency_alpha(self.cfg.consistency_alpha, update_num, self.cfg.max_updates_train)
-        loss = sum(losses)/len(losses) + consistency_loss * consistency_alpha
+        alpha = self._get_alpha(self.cfg.alpha, update_num, self.cfg.max_updates_train)
+        loss = sum(losses)/len(losses) + intra_distillation_loss * alpha
         
         logging_output = {
             "loss": torch.tensor([log["loss"] for log in logging_outputs]),
@@ -196,7 +196,7 @@ class Translation_Intra_Distillation(TranslationTask):
             "ntokens": sample["ntokens"],
             "nsentences": sample["target"].size(0),
             "sample_size": sample_size,
-            "consistency": consistency_loss.data
+            "intra_distillation_loss": intra_distillation_loss.data
         }
 
         if ignore_grad:
@@ -210,14 +210,14 @@ class Translation_Intra_Distillation(TranslationTask):
         super().reduce_metrics(logging_outputs, criterion)
 
         # follows the reduce_metrics() function in label_smoothed_cross_entropy.py
-        loss_sum = sum(log.get("consistency", 0) for log in logging_outputs)
+        loss_sum = sum(log.get("intra_distillation_loss", 0) for log in logging_outputs)
         sample_size = sum(log.get("sample_size", 0) for log in logging_outputs)
         metrics.log_scalar(
-            "consistency", loss_sum / sample_size / math.log(2), sample_size, round=3
+            "intra_distillation_loss", loss_sum / sample_size / math.log(2), sample_size, round=3
         )
 
-    def _get_consistency_alpha(self, alpha, num_update, max_update):
-        if num_update >= max_update / self.cfg.temperature_p or not self.cfg.adaptive_consistency_alpha or alpha <= 1:
+    def _get_alpha(self, alpha, num_update, max_update):
+        if num_update >= max_update / self.cfg.temperature_p or not self.cfg.adaptive_alpha or alpha <= 1:
             return alpha
         else:
             alpha = torch.tensor([alpha])
