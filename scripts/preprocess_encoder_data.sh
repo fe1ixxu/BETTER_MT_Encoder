@@ -27,7 +27,7 @@ for (( i=0;i<${#languages[@]};i++)) do
     lang=${languages[i]}
     num=${last_number[i]}
     gunzip <${DIR[i]}/${lang}_meta_part_${num}.jsonl.gz>  workspace/${lang}/valid.jsonl
-    python scripts/convert_jsonl2txt.py --input workspace/${lang}/valid.jsonl --output workspace/${lang}/valid.txt
+    python scripts/convert_jsonl2txt.py --input workspace/${lang}/valid.jsonl --output workspace/${lang}/valid.txt --lang ${lang}
 done
 cat workspace/*/valid.txt | shuf -n 250000 >  workspace/valid.raw.txt
 
@@ -42,7 +42,10 @@ for start_index in $(seq 1 ${BATCH} ${MAX}); do
             if [ -f  $filename ] && [ ${last_number[i]} != ${index} ] ; then
                 echo "Unzipping ${filename}" 
                 gunzip <$filename> workspace/${lang}/${index}.jsonl
-                python scripts/convert_jsonl2txt.py --input workspace/${lang}/${index}.jsonl --output workspace/${lang}/train.${index}.txt
+                python scripts/convert_jsonl2txt.py \
+                    --input workspace/${lang}/${index}.jsonl \
+                    --output workspace/${lang}/train.${index}.txt \
+                    --lang $lang
             fi
         done
     done

@@ -34,7 +34,7 @@ Please set your storage path `$STORE_PATH` and `$DATA_PATH`
 ```
 bash scripts/train_encoder.sh
 ```
-
+If you meet issues like "device-assert", it is the problem of the dataset. Go `scripts/convert_jsonl2txt.py` to reduce the max length, e.g. from 512 to 256.
 ### Transfer to Huggingface checkpoint
 It is a liitle bit hacky to do this.
 

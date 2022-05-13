@@ -17,9 +17,19 @@ def convert_jsonl_to_txt(args):
             identifications = data["metadata"]['sentence_identifications']
             assert len(contents) == len(identifications)
             for ind in range(len(contents)):
-                if identifications[ind] != None and len(contents[ind]) > 5:
-                    fw.writelines([contents[ind].strip(), "\n"])
-                    count_line += 1
+                if identifications[ind] != None:
+                    if args.lang in ["ru", "ar", "en", "fa"]:
+                        if len(contents[ind].split(" ")) < 512:
+                            fw.writelines([contents[ind].strip(), "\n"])
+                            count_line += 1
+                    elif args.lang == "ko":
+                        if len(contents[ind]) < 1024:
+                            fw.writelines([contents[ind].strip(), "\n"])
+                            count_line += 1
+                    elif args.lang == "zh":
+                        if len(contents[ind]) < 512:
+                            fw.writelines([contents[ind].strip(), "\n"])
+                            count_line += 1
         line = fr.readline()
         count += 1
         if args.max_length > 0 and count_line >= args.max_length:
@@ -33,6 +43,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--input', type=str, required=True, help='input file')
     parser.add_argument('--output', type=str, required=True, help='output file')
+    parser.add_argument('--lang', type=str, required=True, help='language for limiting length')
     parser.add_argument('--max_length', type=int, default=-1, help='max length to extract')
     args = parser.parse_args()
     convert_jsonl_to_txt(args)
